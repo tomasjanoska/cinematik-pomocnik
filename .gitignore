@@ -1,0 +1,6 @@
+/apk/
+*.apk
+.env
+.env.*
+.dev.vars
+.DS_Store
