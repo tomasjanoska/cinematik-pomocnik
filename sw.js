@@ -1,5 +1,8 @@
-const CACHE = "cinematik-v-mobile-7";
-const PRECACHE = ["./index.html", "./films.json", "./manifest.webmanifest", "./icon.svg", "./icon-192.png", "./icon-512.png", "./loading.mp3"];
+const CACHE = "cinematik-v-mobile-8";
+const PRECACHE = [
+  "./index.html", "./films.json",
+  "./css/base.css", "./css/header.css", "./css/board.css", "./css/list.css", "./css/dialogs.css", "./css/feedback.css", "./css/responsive.css",
+  "./manifest.webmanifest", "./icon.svg", "./icon-192.png", "./icon-512.png", "./loading.mp3"];
 
 self.addEventListener("install", (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(PRECACHE)));
