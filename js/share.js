@@ -1,9 +1,7 @@
 import { toast } from "./feedback.js";
-import { $, esc } from "./util.js";
-import { QR_DRAW_SRC } from "./config.js";
+import { $, esc, qrDataUrl } from "./util.js";
 import { state, t, saveSettings } from "./state.js";
 import { paint } from "./render.js";
-import { loadScript } from "./tickets.js";
 
 function cleanName(s) {
   return String(s || "").replace(/[\u0000-\u001f\u007f]/g, "").trim().slice(0, 40);
@@ -78,16 +76,9 @@ async function drawShareQr(url) {
   if (!host) return;
   const n = ++qrGen;
   try {
-    await loadScript(QR_DRAW_SRC, () => typeof QRCode !== "undefined" && typeof QRCode.toCanvas === "function");
+    const src = qrDataUrl(url);
     if (n !== qrGen || !$("share-qr-box")) return;
-    host.innerHTML = `<canvas id="share-qr" width="280" height="280" role="img" aria-label="${esc(t("shareQr"))}"></canvas>`;
-    const canvas = $("share-qr");
-    const opts = { width: 280, margin: 2, color: { dark: "#000000", light: "#ffffff" } };
-    try {
-      await QRCode.toCanvas(canvas, url, { ...opts, errorCorrectionLevel: "M" });
-    } catch {
-      await QRCode.toCanvas(canvas, url, { ...opts, errorCorrectionLevel: "L" });
-    }
+    host.innerHTML = `<img alt="${esc(t("shareQr"))}" width="280" height="280" src="${src}">`;
   } catch {
     if (n !== qrGen) return;
     host.innerHTML = `<p class="qr-payload">${esc(t("shareQrFail"))}</p>`;

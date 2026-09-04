@@ -1,7 +1,7 @@
 import { withBusy, toast } from "./feedback.js";
-import { $, esc } from "./util.js";
+import { $, esc, qrDataUrl } from "./util.js";
 import { COPY } from "./copy.js";
-import { QR_SCAN_SRC, QR_DRAW_SRC } from "./config.js";
+import { QR_SCAN_SRC } from "./config.js";
 import { state, t, saveSettings } from "./state.js";
 import { syncResButtons } from "./render.js";
 
@@ -245,17 +245,13 @@ async function showTicket(id) {
     <form method="dialog"><button class="x" value="close" aria-label="${t("close")}">×</button></form>
     <div class="panel-body">
       <h2 id="tc-title" tabindex="-1">${esc(tk.name)}</h2>
-      <div class="qr-show"><canvas id="qr-canvas" width="280" height="280"></canvas></div>
+      <div class="qr-show" id="qr-show"></div>
       <button type="button" class="btn secondary" data-close>${t("close")}</button>
     </div>`;
   card.showModal();
   $("tc-title").focus();
-  const canvas = $("qr-canvas");
   try {
-    await withBusy(t("load"), async () => {
-      await loadScript(QR_DRAW_SRC, () => typeof QRCode !== "undefined" && typeof QRCode.toCanvas === "function");
-      await QRCode.toCanvas(canvas, String(tk.payload), { width: 280, margin: 2, errorCorrectionLevel: "M", color: { dark: "#000000", light: "#ffffff" } });
-    });
+    $("qr-show").innerHTML = `<img alt="" width="280" height="280" src="${qrDataUrl(String(tk.payload))}">`;
   } catch {
     /* No remote fallback: the pass must never leave the phone except to Inviton. */
     const box = card.querySelector(".qr-show");

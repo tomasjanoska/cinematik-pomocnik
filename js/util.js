@@ -96,4 +96,16 @@ function stripPart(s) { return String(s || "").replace(/\s*\[\d+\s*\/\s*\d+\]\s*
 
 function secColor(name) { return `oklch(0.72 0.12 ${SEC_HUE[name] ?? 55})`; }
 
-export { $, esc, wideUi, parts, parseIdt, addDays, ymd, festDay, minsOnDay, clockLabel, locName, personName, stripHtml, parseMeta, pack, fold, stripTag, stripPart, secColor };
+function qrDataUrl(text) {
+  if (typeof qrcode !== "function") throw new Error("qr");
+  if (qrcode.stringToBytesFuncs && qrcode.stringToBytesFuncs["UTF-8"]) qrcode.stringToBytes = qrcode.stringToBytesFuncs["UTF-8"];
+  const make = (level) => {
+    const qr = qrcode(0, level);
+    qr.addData(String(text), "Byte");
+    qr.make();
+    return qr.createDataURL(4, 4);
+  };
+  try { return make("M"); } catch { return make("L"); }
+}
+
+export { $, esc, wideUi, parts, parseIdt, addDays, ymd, festDay, minsOnDay, clockLabel, locName, personName, stripHtml, parseMeta, pack, fold, stripTag, stripPart, secColor, qrDataUrl };
