@@ -1,4 +1,4 @@
-import { FAV_KEY, SET_KEY, FIRED_KEY } from "./config.js";
+import { FAV_KEY, SET_KEY, FIRED_KEY, RATE_KEY, RATE_MAX } from "./config.js";
 
 function loadFavs() {
   try {
@@ -30,6 +30,23 @@ function loadFired() {
   } catch { return {}; }
 }
 
+function loadMine() {
+  const out = new Map();
+  try {
+    const raw = JSON.parse(localStorage.getItem(RATE_KEY) || "{}");
+    if (!raw || typeof raw !== "object" || Array.isArray(raw)) return out;
+    for (const [k, v] of Object.entries(raw)) {
+      if (!k || k === "__proto__" || k === "constructor" || k === "prototype") continue;
+      if (!v || typeof v !== "object") continue;
+      const stars = Math.round(Number(v.stars));
+      const note = typeof v.note === "string" ? v.note.replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/g, "").slice(0, RATE_MAX) : "";
+      const s = Number.isInteger(stars) && stars >= 1 && stars <= 10 ? stars : 0;
+      if (s || note) out.set(k, { stars: s, note });
+    }
+  } catch {}
+  return out;
+}
+
 function saveFired(o) {
   const cut = Date.now() - 2 * 86400000;
   const next = {};
@@ -37,4 +54,4 @@ function saveFired(o) {
   try { localStorage.setItem(FIRED_KEY, JSON.stringify(next)); } catch {}
 }
 
-export { loadFavs, clampMins, loadSettings, loadFired, saveFired };
+export { loadFavs, clampMins, loadSettings, loadFired, saveFired, loadMine };

@@ -9,6 +9,7 @@
     overscroll-behavior-x: contain; -webkit-overflow-scrolling: touch;
     touch-action: pan-x; scroll-padding-inline: var(--space-2);
   }
+  .days[hidden], .seg[hidden] { display: none; }
   .seg button, .days button, .chip, .ghost {
     border: 0; background: transparent; color: var(--text-muted);
     padding: var(--space-2) var(--space-3); border-radius: var(--radius-sm);

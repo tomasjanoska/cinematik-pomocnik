@@ -96,4 +96,46 @@
   }
   details.more { color: var(--text-muted); font-size: var(--text-sm); }
   details.more summary { cursor: pointer; }
+
+  .mine {
+    margin: 0; min-inline-size: 0; padding: 0;
+    border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface-2);
+  }
+  .mine summary {
+    display: flex; align-items: center; gap: var(--space-2);
+    min-height: 44px; padding: var(--space-2) var(--space-4);
+    cursor: pointer; font-weight: 600; list-style: none;
+  }
+  .mine summary::-webkit-details-marker { display: none; }
+  .mine summary::before {
+    content: ""; flex: none; width: 0.4em; height: 0.4em;
+    border-inline-end: 2px solid var(--text-muted);
+    border-block-end: 2px solid var(--text-muted);
+    transform: rotate(-45deg); margin-block-start: -0.15em;
+  }
+  .mine[open] summary::before { transform: rotate(45deg); margin-block-start: 0; }
+  .mine[open] summary { border-block-end: 1px solid var(--border); }
+  .mine-body { display: grid; gap: var(--space-3); padding: var(--space-4); }
+  .mine-early { font-size: var(--text-sm); color: var(--now); text-wrap: pretty; }
+  .mine-stars { display: grid; grid-template-columns: repeat(10, minmax(24px, 1fr)); max-width: 22rem; }
+  .mine-stars button {
+    min-height: 44px; min-width: 24px; padding: 0; border: 0;
+    background: transparent; color: var(--text-muted);
+  }
+  .mine-stars button svg {
+    width: 1.35rem; height: 1.35rem;
+    fill: none; stroke: currentColor; stroke-width: 1.85; stroke-linejoin: round;
+  }
+  .mine-stars button.is-on { color: var(--accent); }
+  .mine-stars button.is-on svg { fill: currentColor; }
+  .mine-stars button:hover { color: var(--text); }
+  .mine-stars button.is-on:hover { color: var(--accent); }
+  .mine-n { margin-inline-start: auto; font-variant-numeric: tabular-nums; color: var(--accent); min-width: 2ch; text-align: end; }
+  .mine label { font-size: var(--text-sm); font-weight: 600; }
+  .mine textarea {
+    width: 100%; min-height: 4.5rem; resize: vertical; font: inherit; color: var(--text);
+    border: 1px solid var(--border); background: var(--surface);
+    border-radius: var(--radius-sm); padding: var(--space-2) var(--space-3);
+  }
+  .mine-count { font-size: var(--text-xs); color: var(--text-faint); font-variant-numeric: tabular-nums; text-align: end; }
 }

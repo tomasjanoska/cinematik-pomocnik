@@ -12,10 +12,13 @@ function matchesQuery(it) {
   return hay.includes(q);
 }
 
+function acrossDays() {
+  return state.onlyFavs || (state.view === "list" && !!state.query.trim());
+}
+
 function visibleItems() {
-  const allDays = state.view === "list" && !!state.query.trim();
   return state.items.filter((it) =>
-    (allDays || it.day === state.day) &&
+    (acrossDays() || it.day === state.day) &&
     (state.selSec.size === 0 || state.selSec.has(it.section)) &&
     (state.selVenue.size === 0 || state.selVenue.has(String(it.locationId))) &&
     (!state.onlyFavs || (state.sharedFavs || state.favs).has(it.id)) &&
@@ -82,8 +85,9 @@ function filterGroup(id, label, key, body) {
 
 function dayCounts(pick) {
   const m = new Map();
+  const all = acrossDays();
   for (const it of state.items) {
-    if (it.day !== state.day) continue;
+    if (!all && it.day !== state.day) continue;
     const k = String(pick(it));
     m.set(k, (m.get(k) || 0) + 1);
   }

@@ -6,6 +6,7 @@ import { syncResButtons } from "./render.js";
 import { resArea, syncDetailPrimary, refreshResChip } from "./reservations.js";
 import { scheduleReminders } from "./reminders.js";
 import { fillRatings } from "./ratings.js";
+import { mineHtml } from "./mine.js";
 
 function openDetail(id) {
   const it = state.items.find((x) => x.id === id);
@@ -40,6 +41,7 @@ function openDetail(id) {
           <span class="rate is-wait">IMDb …</span>
           <span class="rate is-wait">ČSFD …</span>
         </div>
+        ${mineHtml(it)}
         <p class="status" id="res-msg" hidden></p>
         ${meta.synopsis ? `<p class="syn">${esc(meta.synopsis)}</p>` : ""}
         ${extra}

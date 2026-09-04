@@ -9,11 +9,13 @@ import { openMine, unresMine, refreshResChip } from "./reservations.js";
 import { bookItem, bookFavs } from "./booking.js";
 import { scheduleReminders, goFilm, setNotify } from "./reminders.js";
 import { openDetail, toggleFav } from "./detail.js";
+import { onMineStar, onMineNote, onMineKey } from "./mine.js";
 import { openSettings, openScan, scanFile, savePendingTicket, deleteTicket, showTicket } from "./tickets.js";
 import { load } from "./data.js";
 import { openShare, closeShare, sendShare, syncShareUrl } from "./share.js";
 
 document.addEventListener("click", (e) => {
+  if (e.target.nodeName === "DIALOG" && e.target.id !== "busy") { e.target.close(); return; }
   const tab = e.target.closest("[data-day]");
   if (tab) { state.day = tab.dataset.day; paint(); return; }
   const langBtn = e.target.closest("#lang-sk, #lang-en");
@@ -25,6 +27,7 @@ document.addEventListener("click", (e) => {
     if ($("settings").open) void openSettings();
     if ($("share").open) openShare();
     if ($("scan").open) void openScan();
+    if ($("detail").open && state.detailId) openDetail(state.detailId);
     return;
   }
   const clear = e.target.closest("[data-clear]");
@@ -51,6 +54,8 @@ document.addEventListener("click", (e) => {
   if (e.target.closest("#filt-done")) { $("filt-sheet").close(); return; }
   const fav = e.target.closest("[data-fav]");
   if (fav) { toggleFav(+fav.dataset.fav); return; }
+  const star = e.target.closest("[data-mine-star]");
+  if (star) { onMineStar(+star.dataset.mineStar); return; }
   const resOpen = e.target.closest("[data-res-open]");
   if (resOpen) { $("res-card").close(); openDetail(+resOpen.dataset.resOpen); return; }
   const hit = e.target.closest(".block-hit, .q-hit");
@@ -100,6 +105,7 @@ document.addEventListener("click", (e) => {
 });
 
 document.addEventListener("keydown", (e) => {
+  if (e.target.closest(".mine-stars")) { onMineKey(e); return; }
   if (!e.target.closest(".days")) return;
   const tabs = [...$("days").querySelectorAll("[role=tab]")];
   const i = tabs.indexOf(document.activeElement);
@@ -116,7 +122,7 @@ addEventListener("resize", () => {
   resizeT = setTimeout(() => {
     if (!state.items.length) return;
     if (wideUi() !== lastWide) { lastWide = wideUi(); paint(); return; }
-    if (state.view === "grid") renderBoard();
+    if (state.view === "grid" && !state.onlyFavs) renderBoard();
   }, 150);
 });
 $("q").addEventListener("input", () => {
@@ -132,6 +138,7 @@ document.addEventListener("submit", (e) => {
 });
 document.addEventListener("input", (e) => {
   if (e.target.id === "share-name") syncShareUrl();
+  if (e.target.id === "mine-note") onMineNote(e.target.value);
 });
 document.addEventListener("change", (e) => {
   const ntfMins = e.target.closest("[data-notify-mins]");

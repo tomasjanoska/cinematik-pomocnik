@@ -12,6 +12,7 @@ function renderChrome() {
   document.title = c.name;
   const wide = wideUi();
   const todayKey = festDay(new Date());
+  $("days").hidden = state.onlyFavs;
   $("days").innerHTML = days.map((key) => {
     const d = new Date(key + "T12:00:00Z");
     const p = parts(d);
@@ -29,7 +30,8 @@ function renderChrome() {
     scroller.scrollLeft = Math.max(0, onDay.offsetLeft - (scroller.clientWidth - onDay.offsetWidth) / 2);
   });
   $("now-label").textContent = c.now;
-  $("btn-now").hidden = !days.includes(festDay(new Date()));
+  $("btn-now").hidden = state.onlyFavs || !days.includes(festDay(new Date()));
+  $("view-grid").closest(".seg").hidden = state.onlyFavs;
   $("program-label").textContent = c.program;
   $("btn-program").setAttribute("aria-pressed", !state.onlyFavs);
   $("fav-label").textContent = state.sharedFavs && state.onlyFavs ? c.sharedBanner(state.sharedName) : c.favs;
