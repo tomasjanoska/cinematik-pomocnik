@@ -1,4 +1,4 @@
-const CACHE = "cinematik-v-mobile-12";
+const CACHE = "cinematik-v-mobile-13";
 const PRECACHE = [
   "./index.html", "./films.json",
   "./css/base.css", "./css/header.css", "./css/board.css", "./css/list.css", "./css/dialogs.css", "./css/feedback.css", "./css/responsive.css",

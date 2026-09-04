@@ -15,6 +15,47 @@ function parseShare(search) {
   return { who, ids: new Set(ids) };
 }
 
+function parseShareText(text) {
+  const raw = String(text || "").trim();
+  if (!raw) return null;
+  try { return parseShare(new URL(raw).search); } catch {}
+  const i = raw.indexOf("favs=");
+  if (i < 0) return null;
+  return parseShare("?" + raw.slice(i).split(/\s/)[0]);
+}
+
+function applyParsedShare(parsed) {
+  if (!parsed) return false;
+  const known = new Set(state.items.map((it) => it.id));
+  const ids = new Set([...parsed.ids].filter((id) => known.has(id)));
+  if (!ids.size) return false;
+  state.sharedFavs = ids;
+  state.sharedName = parsed.who;
+  state.onlyFavs = true;
+  const days = state.items.filter((it) => ids.has(it.id)).map((it) => it.day).sort();
+  if (!days.includes(state.day) && days[0]) state.day = days[0];
+  const u = new URL(location.href);
+  u.hash = "";
+  u.searchParams.set("favs", [...ids].sort((a, b) => a - b).join(","));
+  if (parsed.who) u.searchParams.set("who", parsed.who);
+  else u.searchParams.delete("who");
+  history.replaceState(null, "", u.pathname + u.search + u.hash);
+  return true;
+}
+
+function applyShare() {
+  applyParsedShare(parseShare(location.search));
+}
+
+function openSharedList(text) {
+  const parsed = parseShareText(text);
+  if (!parsed) return false;
+  if (!applyParsedShare(parsed)) return "empty";
+  paint();
+  toast(t("sharedOpened")(parsed.who));
+  return true;
+}
+
 function buildShareUrl(name, ids) {
   const u = new URL(location.href);
   u.hash = "";
@@ -24,20 +65,6 @@ function buildShareUrl(name, ids) {
   const who = cleanName(name);
   if (who) u.searchParams.set("who", who);
   return u.href;
-}
-
-function applyShare() {
-  const parsed = parseShare(location.search);
-  if (!parsed) return;
-  const known = new Set(state.items.map((it) => it.id));
-  const ids = new Set([...parsed.ids].filter((id) => known.has(id)));
-  if (!ids.size) return;
-  state.sharedFavs = ids;
-  state.sharedName = parsed.who;
-  state.onlyFavs = true;
-  const days = state.items.filter((it) => ids.has(it.id)).map((it) => it.day).sort();
-  if (days.includes(state.day)) return;
-  if (days[0]) state.day = days[0];
 }
 
 function closeShare() {
@@ -152,4 +179,4 @@ async function sendShare(via) {
   }
 }
 
-export { parseShare, buildShareUrl, applyShare, closeShare, openShare, syncShareUrl, sendShare, cleanName };
+export { parseShare, parseShareText, buildShareUrl, applyShare, applyParsedShare, openSharedList, closeShare, openShare, syncShareUrl, sendShare, cleanName };
