@@ -579,7 +579,8 @@
         const raw = JSON.parse(localStorage.getItem(SET_KEY) || "{}");
         const hidden = Array.isArray(raw.hiddenVenues) ? raw.hiddenVenues.map(String) : [];
         const tickets = Array.isArray(raw.tickets) ? raw.tickets.filter((x) => x && x.id && x.payload).map((x) => ({ ...x, resOn: x.resOn !== false })) : [];
-        return { hiddenVenues: new Set(hidden), tickets, activeTicketId: raw.activeTicketId || tickets[0]?.id || null, notifyOn: !!raw.notifyOn, notifyMins: clampMins(raw.notifyMins), notifyFav: raw.notifyFav !== false, notifyRes: raw.notifyRes !== false };
+        const activeTicketId = tickets.some((x) => x.id === raw.activeTicketId) ? raw.activeTicketId : tickets[0]?.id || null;
+        return { hiddenVenues: new Set(hidden), tickets, activeTicketId, notifyOn: !!raw.notifyOn, notifyMins: clampMins(raw.notifyMins), notifyFav: raw.notifyFav !== false, notifyRes: raw.notifyRes !== false };
       } catch { return { hiddenVenues: new Set(), tickets: [], activeTicketId: null, notifyOn: false, notifyMins: 15, notifyFav: true, notifyRes: true }; }
     }
     function saveSettings() {
@@ -852,6 +853,10 @@
 
     function resTickets() { return state.tickets.filter((tk) => tk.resOn !== false); }
     function resFavsVisible() { return !!(state.onlyFavs && state.favs.size && resTickets().length); }
+    function syncResButtons() {
+      $("btn-res-favs").hidden = !resFavsVisible();
+      $("btn-res-mine").hidden = !state.tickets.length;
+    }
     const FIRED_KEY = "cinematik-notified";
     let remindTimers = [];
     function leadMs() { return state.notifyMins * 60 * 1000; }
@@ -995,10 +1000,13 @@
       }
       return out;
     }
-    function matchResEvent(it, events) {
-      const t0 = it.start.getTime();
+    function sameScreening(it, ev) {
       const nl = it.raw.NameLocalized || {};
-      const hits = events.filter((e) => e.start.getTime() === t0 && (namesMatch(nl.English, e.Name) || namesMatch(nl.Slovak, e.Name)));
+      return it.start.getTime() === ev.start.getTime()
+        && (namesMatch(nl.English, ev.Name) || namesMatch(nl.Slovak, ev.Name));
+    }
+    function matchResEvent(it, events) {
+      const hits = events.filter((e) => sameScreening(it, e));
       if (hits.length <= 1) return hits[0] || null;
       const loc = fold(locName(it.loc || {}));
       return hits.find((e) => fold(e.venueName || "").includes(loc) || loc.includes(fold(e.venueName || ""))) || hits[0];
@@ -1056,21 +1064,20 @@
       return pass.events.filter((e) => ids.has(e.TicketDateId)).sort((a, b) => a.start - b.start);
     }
     function matchSchedule(ev) {
-      const t0 = ev.start.getTime();
-      return state.items.find((it) => {
-        const nl = it.raw.NameLocalized || {};
-        return it.start.getTime() === t0 && (namesMatch(nl.English, ev.Name) || namesMatch(nl.Slovak, ev.Name));
-      });
+      return state.items.find((it) => sameScreening(it, ev));
+    }
+    function resCardHtml(title, body) {
+      return `
+        <form method="dialog"><button class="x" value="close" aria-label="${t("close")}">×</button></form>
+        <div class="panel-body">
+          <h2 id="res-title" tabindex="-1">${title}</h2>
+          ${body}
+        </div>`;
     }
     async function openMine() {
       if (!state.tickets.length) { void openSettings(); return; }
       const c = COPY[state.lang];
-      $("res-card").innerHTML = `
-        <form method="dialog"><button class="x" value="close" aria-label="${c.close}">×</button></form>
-        <div class="panel-body">
-          <h2 id="res-title" tabindex="-1">${c.resMine}</h2>
-          <p class="status">${c.load}</p>
-        </div>`;
+      $("res-card").innerHTML = resCardHtml(c.resMine, `<p class="status">${c.load}</p>`);
       $("res-card").showModal();
       $("res-title").focus();
       await withBusy(c.load, async () => {
@@ -1096,13 +1103,7 @@
           </div>`;
         }).join("");
       }
-      $("res-card").innerHTML = `
-        <form method="dialog"><button class="x" value="close" aria-label="${c.close}">×</button></form>
-        <div class="panel-body">
-          <h2 id="res-title" tabindex="-1">${c.resMine}</h2>
-          ${body}
-          <button type="button" class="btn secondary" data-close>${c.close}</button>
-        </div>`;
+      $("res-card").innerHTML = resCardHtml(c.resMine, `${body}<button type="button" class="btn secondary" data-close>${c.close}</button>`);
       $("res-title").focus();
     }
     async function unresMine(tkId, td) {
@@ -1160,13 +1161,9 @@
       el.textContent = text || "";
     }
     function showResLog(rows) {
-      $("res-card").innerHTML = `
-        <form method="dialog"><button class="x" value="close" aria-label="${t("close")}">×</button></form>
-        <div class="panel-body">
-          <h2 id="res-title" tabindex="-1">${t("resLog")}</h2>
+      $("res-card").innerHTML = resCardHtml(t("resLog"), `
           <ul class="res-log">${rows.map((r) => `<li>${esc(r)}</li>`).join("")}</ul>
-          <button type="button" class="btn secondary" data-close>${t("close")}</button>
-        </div>`;
+          <button type="button" class="btn secondary" data-close>${t("close")}</button>`);
       $("res-card").showModal();
       $("res-title").focus();
     }
@@ -1254,8 +1251,8 @@
           if (!res.ok) throw new Error(res.status);
           const data = await res.json();
           if (linksRes.ok) {
-            const pack = await linksRes.json();
-            state.filmLinks = pack.films || [];
+            const links = await linksRes.json();
+            state.filmLinks = links.films || [];
           }
           hydrate(data);
           paint();
@@ -1345,11 +1342,9 @@
       $("btn-settings").setAttribute("aria-label", c.settings);
       $("filt-sum").textContent = filtLabel();
       if (wideUi()) $("filt-fold").open = true;
-      fillTicketSelect();
       $("btn-res-favs").textContent = c.resFavs;
-      $("btn-res-favs").hidden = !resFavsVisible();
       $("btn-res-mine").textContent = c.resMine;
-      $("btn-res-mine").hidden = !state.tickets.length;
+      syncResButtons();
       $("sec-filters").hidden = false;
       $("sec-filters").innerHTML = `<span class="lbl">${c.sections}</span><button type="button" class="chip inv-chip" data-inv="sec" aria-label="${esc(c.invert)}">${INV}</button>` + chips(state.sections, "sec", state.offSec, secColor);
       const visVenues = state.venues.filter((v) => !state.hiddenVenues.has(String(v.Id)));
@@ -1619,12 +1614,12 @@
       return `<a class="rate" href="${esc(href)}" target="_blank" rel="noopener">${label}${val ? ` <b>${esc(val)}</b>` : ""}</a>`;
     }
     function fmtCsfd(s) {
-      const t = String(s || "").trim();
-      if (!t) return "";
-      if (/%/.test(t)) return t;
-      const n = parseFloat(t.replace(",", "."));
+      const raw = String(s || "").trim();
+      if (!raw) return "";
+      if (/%/.test(raw)) return raw;
+      const n = parseFloat(raw.replace(",", "."));
       if (Number.isFinite(n) && n <= 100) return (Number.isInteger(n) ? n : n.toFixed(1)) + "%";
-      return t;
+      return raw;
     }
     async function wdByImdb(imdbId) {
       if (!/^tt\d+$/.test(imdbId)) return {};
@@ -1768,7 +1763,7 @@
         if (b.classList.contains("fav")) b.setAttribute("aria-label", on ? t("favRemove") : t("favAdd"));
       });
       document.querySelectorAll(`.block[data-id="${id}"]`).forEach((b) => b.classList.toggle("is-fav", on));
-      $("btn-res-favs").hidden = !resFavsVisible();
+      syncResButtons();
       if (state.onlyFavs) renderMain();
       void scheduleReminders();
     }
@@ -1790,12 +1785,6 @@
         el.onerror = () => reject(new Error("net"));
         document.head.appendChild(el);
       });
-    }
-
-    function fillTicketSelect() {
-      if (!state.tickets.some((tk) => tk.id === state.activeTicketId)) {
-        state.activeTicketId = state.tickets[0]?.id || null;
-      }
     }
 
     async function stopScan() {
@@ -1974,9 +1963,7 @@
       state.activeTicketId = id;
       pendingQr = null;
       saveSettings();
-      fillTicketSelect();
-      $("btn-res-favs").hidden = !resFavsVisible();
-      $("btn-res-mine").hidden = !state.tickets.length;
+      syncResButtons();
       void openSettings();
     }
 
@@ -1984,9 +1971,7 @@
       state.tickets = state.tickets.filter((tk) => tk.id !== id);
       if (state.activeTicketId === id) state.activeTicketId = state.tickets[0]?.id || null;
       saveSettings();
-      fillTicketSelect();
-      $("btn-res-favs").hidden = !resFavsVisible();
-      $("btn-res-mine").hidden = !state.tickets.length;
+      syncResButtons();
       if ($("settings").open) void openSettings();
     }
 
@@ -1994,7 +1979,6 @@
       if (!state.tickets.some((tk) => tk.id === id)) return;
       state.activeTicketId = id;
       saveSettings();
-      fillTicketSelect();
       document.querySelectorAll("[data-ticket-row]").forEach((row) => {
         row.classList.toggle("is-on", row.dataset.ticketRow === id);
       });
@@ -2179,7 +2163,7 @@
         if (tk) {
           tk.resOn = resTk.checked;
           saveSettings();
-          $("btn-res-favs").hidden = !resFavsVisible();
+          syncResButtons();
           const openIt = state.items.find((x) => x.id === state.detailId);
           if ($("detail").open && openIt) void refreshResChip(openIt);
         }
@@ -2192,7 +2176,6 @@
           const name = rename.value.trim();
           if (name) tk.name = name;
           saveSettings();
-          fillTicketSelect();
         }
         return;
       }
