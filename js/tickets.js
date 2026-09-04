@@ -1,5 +1,5 @@
 import { withBusy, toast } from "./feedback.js";
-import { $, esc, qrDataUrl } from "./util.js";
+import { $, esc, qrDataUrl, disclaimerHtml } from "./util.js";
 import { COPY } from "./copy.js";
 import { QR_SCAN_SRC } from "./config.js";
 import { state, t, saveSettings } from "./state.js";
@@ -83,7 +83,7 @@ async function openSettings() {
       </section>
       <section class="panel-sec">
         <h3>${c.about}</h3>
-        <p class="status">${esc(c.disclaimer)}</p>
+        <p class="status">${disclaimerHtml(state.lang)}</p>
         <p class="status">${c.foot}<a href="https://cinematik.sk/program?st=1">cinematik.sk/program</a> · ${c.ideas}: <a href="mailto:cmnapady@pocuj.com">cmnapady@pocuj.com</a></p>
       </section>
       <button type="button" class="btn secondary" data-close>${c.close}</button>

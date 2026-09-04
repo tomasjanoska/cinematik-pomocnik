@@ -1,4 +1,4 @@
-import { $, esc, wideUi, parts, festDay, locName, secColor } from "./util.js";
+import { $, esc, wideUi, parts, festDay, locName, secColor, disclaimerHtml } from "./util.js";
 import { COPY } from "./copy.js";
 import { state } from "./state.js";
 import { syncFiltUi, placeFilters, chips, filterGroup, dayCounts } from "./filters.js";
@@ -7,7 +7,7 @@ function renderChrome() {
   const c = COPY[state.lang];
   const days = [...new Set(state.items.map((i) => i.day))].sort();
   $("app-name").textContent = c.name;
-  $("disclaimer").textContent = c.disclaimer;
+  $("disclaimer").innerHTML = disclaimerHtml(state.lang);
   $("foot").innerHTML = c.foot + `<a href="https://cinematik.sk/program?st=1">cinematik.sk/program</a> · ${c.ideas}: <a href="mailto:cmnapady@pocuj.com">cmnapady@pocuj.com</a>`;
   document.title = c.name;
   const wide = wideUi();

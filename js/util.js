@@ -1,5 +1,5 @@
-import { TZ, NIGHT_END } from "./config.js";
-import { SEC_HUE } from "./copy.js";
+import { TZ, NIGHT_END, INVITON_SITE, CINEMATIK_SITE, APP_IOS, APP_ANDROID } from "./config.js";
+import { COPY, SEC_HUE } from "./copy.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -108,4 +108,18 @@ function qrDataUrl(text) {
   try { return make("M"); } catch { return make("L"); }
 }
 
-export { $, esc, wideUi, parts, parseIdt, addDays, ymd, festDay, minsOnDay, clockLabel, locName, personName, stripHtml, parseMeta, pack, fold, stripTag, stripPart, secColor, qrDataUrl };
+function officialAppHref() {
+  const ua = navigator.userAgent || "";
+  if (/Android/i.test(ua)) return APP_ANDROID;
+  if (/iPhone|iPad|iPod/i.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1)) return APP_IOS;
+  return CINEMATIK_SITE;
+}
+
+function disclaimerHtml(lang) {
+  const c = COPY[lang] || COPY.sk;
+  const inviton = `<a href="${INVITON_SITE}" target="_blank" rel="noopener">Inviton</a>`;
+  const app = `<a href="${esc(officialAppHref())}" target="_blank" rel="noopener">${c.officialApp}</a>`;
+  return c.disclaimer(inviton, app);
+}
+
+export { $, esc, wideUi, parts, parseIdt, addDays, ymd, festDay, minsOnDay, clockLabel, locName, personName, stripHtml, parseMeta, pack, fold, stripTag, stripPart, secColor, qrDataUrl, officialAppHref, disclaimerHtml };
