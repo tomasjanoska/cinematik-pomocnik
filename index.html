@@ -112,325 +112,22 @@
   <div id="toasts" popover="manual" role="status" aria-live="polite"></div>
   <audio id="load-audio" src="loading.mp3" preload="auto" loop></audio>
 
-  <script>
-    const EVENT_ID = 21724;
-    const API = "https://inviton-cdn.azureedge.net/api/v1/EventSchedulePublic?EventId=" + EVENT_ID + "&Type=1&Language=sk";
-    const RES_API = "https://inviton.eu/api/v1/";
-    const TZ = "Europe/Bratislava";
-    const NIGHT_END = 2;
-    const LANE_GAP = 6;
-    const ROW_PAD = 8;
-    const FAV_KEY = "cinematik-favs";
-    const SET_KEY = "cinematik-settings";
-    const QR_SCAN_SRC = "https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js";
-    const QR_DRAW_SRC = "https://cdn.jsdelivr.net/npm/qrcode@1.5.4/build/qrcode.min.js";
-    const STAR = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.2 14.5 9l6.3.6-4.8 4.1 1.5 6.1L12 16.5 6.5 19.8 8 13.7 3.2 9.6 9.5 9z"/></svg>`;
+  <script type="module">
+    import { EVENT_ID, API, RES_API, LANE_GAP, ROW_PAD, QR_SCAN_SRC, QR_DRAW_SRC, STAR, EXT } from "./js/config.js";
+    import { COPY } from "./js/copy.js";
+    import { clampMins, loadFired, saveFired } from "./js/storage.js";
+    import { $, esc, wideUi, parts, parseIdt, festDay, minsOnDay, clockLabel, locName, personName, parseMeta, pack, fold, stripTag, stripPart, secColor } from "./js/util.js";
+    import { state, t, txt, saveFavs, saveSettings } from "./js/state.js";
+    import { withBusy, unlockLoadAudio, toast } from "./js/feedback.js";
 
-    function loadFavs() {
-      try {
-        const raw = JSON.parse(localStorage.getItem(FAV_KEY) || "[]");
-        return new Set((Array.isArray(raw) ? raw : []).map(Number).filter(Number.isFinite));
-      } catch { return new Set(); }
-    }
-    function saveFavs() {
-      try { localStorage.setItem(FAV_KEY, JSON.stringify([...state.favs])); } catch {}
-    }
-    function clampMins(n) {
-      const x = Math.round(Number(n));
-      return Number.isFinite(x) ? Math.min(180, Math.max(1, x)) : 15;
-    }
-    function loadSettings() {
-      try {
-        const raw = JSON.parse(localStorage.getItem(SET_KEY) || "{}");
-        const tickets = Array.isArray(raw.tickets) ? raw.tickets.filter((x) => x && x.id && x.payload).map((x) => ({ ...x, resOn: x.resOn !== false })) : [];
-        const activeTicketId = tickets.some((x) => x.id === raw.activeTicketId) ? raw.activeTicketId : tickets[0]?.id || null;
-        const lang = raw.lang === "en" ? "en" : "sk";
-        return { lang, tickets, activeTicketId, notifyOn: !!raw.notifyOn, notifyMins: clampMins(raw.notifyMins), notifyFav: raw.notifyFav !== false, notifyRes: raw.notifyRes !== false, soundOn: raw.soundOn === true };
-      } catch { return { lang: "sk", tickets: [], activeTicketId: null, notifyOn: false, notifyMins: 15, notifyFav: true, notifyRes: true, soundOn: false }; }
-    }
-    function saveSettings() {
-      try {
-        localStorage.setItem(SET_KEY, JSON.stringify({
-          lang: state.lang,
-          tickets: state.tickets,
-          activeTicketId: state.activeTicketId,
-          notifyOn: !!state.notifyOn,
-          notifyMins: state.notifyMins,
-          notifyFav: !!state.notifyFav,
-          notifyRes: !!state.notifyRes,
-          soundOn: !!state.soundOn,
-        }));
-      } catch {}
-    }
+
     function laneH() {
       return parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--lane-h")) || 72;
     }
 
-    const COPY = {
-      sk: {
-        halls: "Sály", now: "Teraz", retry: "Skúsiť znova", close: "Zavrieť",
-        trailer: "Trailer", load: "Načítavam program…",
-        err: "Program sa nepodarilo načítať. Ak otváraš súbor priamo, spusť ho cez lokálny server.",
-        empty: "Na tento deň nič neostalo — uprav filtre alebo vyber iný deň.",
-        emptyFav: "Na tento deň nemáš obľúbené. Označ predstavenie hviezdičkou.",
-        emptySearch: "Nič sa nenašlo.",
-        sections: "Sekcie", venues: "Sály", more: "Celý text",
-        program: "Program", clearAll: "Zrušiť všetko", clearSel: "Zrušiť výber",
-        showN: (n) => n === 1 ? "Zobraziť 1 položku" : "Zobraziť " + COPY.sk.films(n),
-        searchPh: "Hľadať film, sálu, sekciu…", langLabel: "Jazyk",
-        favs: "Obľúbené", favAdd: "Pridať k obľúbeným", favRemove: "Odstrániť z obľúbených",
-        grid: "Mriežka", list: "Zoznam", search: "Hľadať", filters: "Filtre",
-        settings: "Nastavenia",
-        tickets: "Vstupenky", ticketsHint: "Zaškrtni vstupenky, ktorými chceš rezervovať. QR ostane v telefóne; pri rezervácii sa kód odošle do Invitonu.",
-        resBtn: "Rezervovať", resDone: "Rezervované", resNeed: "Pridaj vstupenku",
-        resNoPass: "Rezervácie fungujú cez tvoju akreditáciu alebo vstupenku. Najprv naskenuj jej QR kód – ostane len v telefóne.",
-        resNeedHint: "Na rezerváciu najprv pridaj vstupenku.",
-        resUnresAsk: "Zrušiť rezerváciu? Miesto sa môže medzitým obsadiť.",
-        resFree: (n) => `voľné miesta: ${n}`,
-        resPasses: (n) => n + (n >= 2 && n <= 4 ? " vstupenky" : " vstupeniek"),
-        ticketDeleted: "Vstupenka zmazaná.", undo: "Späť",
-        favAdded: "Pridané k obľúbeným", favRemoved: "Odstránené z obľúbených",
-        qrFail: "QR kód sa nepodarilo vykresliť. Kód vstupenky:",
-        clearQuery: "Vymazať hľadanie", goProgram: "Späť na program", clearFilters: "Zrušiť filtre",
-        resFavs: "Rezervovať obľúbené", resMine: "Rezervácie", resMineEmpty: "Zatiaľ žiadna rezervácia.",
-        resUse: "Rezervovať s touto vstupenkou",
-        resBusy: "Rezervujem…", resOk: "Rezervované.", resUnresOk: "Rezervácia zrušená.",
-        resUnres: "Zrušiť rezerváciu", resLog: "Výsledok rezervácií",
-        resNo: "Toto predstavenie nie je v rezervačnom systéme.",
-        resBadPass: "Túto vstupenku Inviton nepozná. Skontroluj naskenovaný QR.",
-        resFail: "Rezervácia sa nepodarila.", resSkip: "Už rezervované",
-        resR1: "Málo kreditov.", resR2: "Kapacita je plná.",
-        resR3: "Táto vstupenka na rezerváciu nestačí.", resR4: "Predstavenie sa nedá rezervovať.",
-        resR5: "Rezerváciu už nie je možné spraviť ani zrušiť.",
-        resFavAsk: (n, m) => `Rezervovať ${n} obľúbených pre ${m} ${m === 1 ? "vstupenku" : "vstupenky"}?`,
-        addTicket: "Pridať vstupenku", scanQr: "Skenovať QR", scanFile: "Zo súboru",
-        stopScan: "Zastaviť sken", ticketName: "Názov vstupenky", saveTicket: "Uložiť",
-        showTicket: "Zobraziť QR", deleteTicket: "Zmazať", noTickets: "Zatiaľ žiadna vstupenka.",
-        ticketSel: "Vstupenka", scanNeedHttps: "Kamera potrebuje HTTPS alebo localhost.",
-        scanFail: "Skenovač sa nepodarilo spustiť.", scanLib: "Načítavam skener…",
-        scanNoQr: "V súbore sa nenašiel QR kód.",
-        ticketSaved: "Vstupenka uložená.", namePh: "Napr. Moja akreditácia",
-        scanOk: "Naskenované. Zadaj názov a ulož.", showQr: "Zobraziť QR",
-        rateWait: "Načítavam hodnotenia…",
-        name: "Cinematik v mobile",
-        disclaimer: "Neoficiálny pomocník na festival (8.–13. 9. 2026). Nie je to oficiálna aplikácia MFF Cinematik.",
-        foot: "Zdroj: Inviton EventSchedulePublic · ",
-        ideas: "Nápady",
-        notify: "Upozornenia",
-        notifyHint: "Funguje, keď je aplikácia otvorená. Na nainštalovanej PWA na Androide aj na pozadí.",
-        notifyOn: "Upozorniť pred filmom",
-        notifyMins: "Minút pred začiatkom",
-        notifyOnFav: "Obľúbené",
-        notifyOnRes: "Rezervované",
-        notifyNo: "Tento prehliadač upozornenia nepodporuje.",
-        notifyDenied: "Upozornenia sú v prehliadači vypnuté.",
-        notifyFav: "Obľúbené",
-        notifyRes: "Rezervácia",
-        notifyBody: (mins, hall, kind) => ["Za " + mins + " min", hall, kind].filter(Boolean).join(" · "),
-        films: (n) => n + " " + (n === 1 ? "položka" : n >= 2 && n <= 4 ? "položky" : "položiek"),
-        today: "dnes", about: "O aplikácii", sound: "Zvuk", soundOn: "Zvuk počas načítavania",
-        days: ["nedeľa", "pondelok", "utorok", "streda", "štvrtok", "piatok", "sobota"],
-        daysShort: ["ne", "po", "ut", "st", "št", "pi", "so"],
-        brow: "MFF Piešťany · 8.–13. 9. 2026",
-      },
-      en: {
-        halls: "Venues", now: "Now", retry: "Try again", close: "Close",
-        trailer: "Trailer", load: "Loading programme…",
-        err: "Could not load the programme. Serve this file over HTTP if you opened it from disk.",
-        empty: "Nothing left for this day — change filters or pick another day.",
-        emptyFav: "No favourites this day. Star a screening to save it.",
-        emptySearch: "No matches.",
-        sections: "Sections", venues: "Venues", more: "Full text",
-        program: "Programme", clearAll: "Clear all", clearSel: "Clear",
-        showN: (n) => "Show " + COPY.en.films(n),
-        searchPh: "Search film, venue, section…", langLabel: "Language",
-        favs: "Favourites", favAdd: "Add to favourites", favRemove: "Remove from favourites",
-        grid: "Grid", list: "List", search: "Search", filters: "Filters",
-        settings: "Settings",
-        tickets: "Tickets", ticketsHint: "Tick the passes you want to reserve with. The QR stays on the phone; it is sent to Inviton only when you reserve.",
-        resBtn: "Reserve", resDone: "Reserved", resNeed: "Add a pass",
-        resNoPass: "Reservations work through your pass or ticket. Scan its QR code first – it stays on this phone.",
-        resNeedHint: "Add a pass to reserve.",
-        resUnresAsk: "Cancel the reservation? The seat may be taken in the meantime.",
-        resFree: (n) => `seats left: ${n}`,
-        resPasses: (n) => `${n} passes`,
-        ticketDeleted: "Pass deleted.", undo: "Undo",
-        favAdded: "Added to favourites", favRemoved: "Removed from favourites",
-        qrFail: "Could not draw the QR code. Pass code:",
-        clearQuery: "Clear search", goProgram: "Back to programme", clearFilters: "Clear filters",
-        resFavs: "Reserve favourites", resMine: "Reservations", resMineEmpty: "No reservations yet.",
-        resUse: "Use this pass for reservations",
-        resBusy: "Reserving…", resOk: "Reserved.", resUnresOk: "Reservation cancelled.",
-        resUnres: "Cancel reservation", resLog: "Reservation results",
-        resNo: "This screening is not in the reservation system.",
-        resBadPass: "Inviton does not recognise this pass. Check the scanned QR.",
-        resFail: "Reservation failed.", resSkip: "Already reserved",
-        resR1: "Not enough credits.", resR2: "Sold out.",
-        resR3: "This pass cannot reserve that screening.", resR4: "Screening cannot be reserved.",
-        resR5: "Too late to reserve or cancel.",
-        resFavAsk: (n, m) => `Reserve ${n} favourites for ${m} pass${m === 1 ? "" : "es"}?`,
-        addTicket: "Add ticket", scanQr: "Scan QR", scanFile: "From file",
-        stopScan: "Stop scan", ticketName: "Ticket name", saveTicket: "Save",
-        showTicket: "Show QR", deleteTicket: "Delete", noTickets: "No tickets yet.",
-        ticketSel: "Ticket", scanNeedHttps: "Camera needs HTTPS or localhost.",
-        scanFail: "Could not start the scanner.", scanLib: "Loading scanner…",
-        scanNoQr: "No QR code found in that file.",
-        ticketSaved: "Ticket saved.", namePh: "e.g. My pass",
-        scanOk: "Scanned. Name it and save.", showQr: "Show QR",
-        rateWait: "Loading ratings…",
-        name: "Cinematik v mobile",
-        disclaimer: "Unofficial festival helper (8–13 Sep 2026). Not an official MFF Cinematik app.",
-        foot: "Source: Inviton EventSchedulePublic · ",
-        ideas: "Ideas",
-        notify: "Alerts",
-        notifyHint: "Works while the app is open. Installed Android PWAs can also alert in the background.",
-        notifyOn: "Remind me before a film",
-        notifyMins: "Minutes before the start",
-        notifyOnFav: "Favourites",
-        notifyOnRes: "Reservations",
-        notifyNo: "This browser does not support notifications.",
-        notifyDenied: "Notifications are blocked in the browser.",
-        notifyFav: "Favourite",
-        notifyRes: "Reserved",
-        notifyBody: (mins, hall, kind) => ["In " + mins + " min", hall, kind].filter(Boolean).join(" · "),
-        films: (n) => n + " item" + (n === 1 ? "" : "s"),
-        today: "today", about: "About", sound: "Sound", soundOn: "Sound while loading",
-        days: ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
-        daysShort: ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"],
-        brow: "IFF Piešťany · 8–13 Sep 2026",
-      },
-    };
 
-    const SEC_HUE = {
-      "Meeting Point Europe": 70,
-      "Cinematik.doc": 210,
-      "Rešpekt: Nils Malmros": 145,
-      "Other Spaces": 300,
-      "Cinematik Junior": 95,
-      "Sprievodné podujatia": 40,
-      "Dánsko pod lupou": 25,
-      "Slovenský horizont": 255,
-      "Cinematik Classics": 80,
-      "DoKma": 185,
-      "Za hranicou kultu: …prichádza tma": 15,
-      "Cesty slávy": 230,
-    };
 
-    const boot = loadSettings();
-    const state = { lang: boot.lang, day: null, items: [], venues: [], sections: [], selSec: new Set(), selVenue: new Set(), favs: loadFavs(), onlyFavs: false, view: wideUi() ? "grid" : "list", query: "", axisStart: 0, tickets: boot.tickets, activeTicketId: boot.activeTicketId, notifyOn: boot.notifyOn, notifyMins: boot.notifyMins, notifyFav: boot.notifyFav, notifyRes: boot.notifyRes, soundOn: boot.soundOn, filmLinks: [], resPub: null, resPass: new Map() };
-    const $ = (id) => document.getElementById(id);
-    document.documentElement.lang = state.lang;
-    let busyN = 0;
-    let busyShowTimer = 0;
-    function playLoadSound() {
-      const a = $("load-audio");
-      if (!a || !state.soundOn) return;
-      a.loop = true;
-      a.play().catch(() => {});
-    }
-    function busyOn(msg) {
-      busyN += 1;
-      $("busy-label").textContent = msg || t("load");
-      if (busyN !== 1) {
-        if ($("busy").open) playLoadSound();
-        return;
-      }
-      clearTimeout(busyShowTimer);
-      busyShowTimer = setTimeout(() => {
-        if (!busyN) return;
-        if (!$("busy").open) $("busy").showModal();
-        playLoadSound();
-      }, 80);
-    }
-    function busyOff() {
-      busyN = Math.max(0, busyN - 1);
-      if (busyN) return;
-      clearTimeout(busyShowTimer);
-      busyShowTimer = 0;
-      if ($("busy").open) $("busy").close();
-      const a = $("load-audio");
-      if (!a) return;
-      a.pause();
-      try { a.currentTime = 0; } catch {}
-    }
-    async function withBusy(msg, fn) {
-      busyOn(msg);
-      try { return await fn(); }
-      finally { busyOff(); }
-    }
-    function unlockLoadAudio() {
-      const a = $("load-audio");
-      if (!a || !state.soundOn) return;
-      a.play().then(() => { if (!busyN) a.pause(); }).catch(() => {});
-    }
-    const locFmt = new Intl.DateTimeFormat("en-GB", {
-      timeZone: TZ, year: "numeric", month: "2-digit", day: "2-digit",
-      hour: "2-digit", minute: "2-digit", hourCycle: "h23",
-    });
 
-    function parts(date) {
-      const o = {};
-      for (const p of locFmt.formatToParts(date)) if (p.type !== "literal") o[p.type] = p.value;
-      return { y: +o.year, m: +o.month, d: +o.day, hour: +o.hour, min: +o.minute, date: new Date(Date.UTC(o.year, o.month - 1, o.day)) };
-    }
-    function parseIdt(s) { return new Date(Number(String(s).replace("$idt/", ""))); }
-    function addDays(date, n) { const x = new Date(date); x.setUTCDate(x.getUTCDate() + n); return x; }
-    function ymd(date) { return date.toISOString().slice(0, 10); }
-    function festDay(date) {
-      const p = parts(date);
-      return ymd(p.hour < NIGHT_END ? addDays(p.date, -1) : p.date);
-    }
-    function minsOnDay(date, dayKey) {
-      const p = parts(date);
-      let h = p.hour + p.min / 60;
-      const key = ymd(p.date);
-      if (key > dayKey) h += 24;
-      else if (key < dayKey) h -= 24;
-      return h * 60;
-    }
-    function locName(loc) {
-      const n = (loc && loc.NameLocalized) || {};
-      return n.Slovak || n.English || (loc && loc.VenueName) || "—";
-    }
-    function txt(map) {
-      if (!map) return "";
-      return (state.lang === "en" ? map.English : map.Slovak) || map.Slovak || map.English || "";
-    }
-    function secColor(name) { return `oklch(0.72 0.12 ${SEC_HUE[name] ?? 55})`; }
-    function personName(p) {
-      const fields = Object.fromEntries((p.CustomFields || []).map((f) => [f.FieldName, f.FieldValue]));
-      return fields.Meno || fields.Priezvisko || "";
-    }
-    function stripHtml(s) {
-      return String(s || "")
-        .replace(/<br\s*\/?>/gi, "\n")
-        .replace(/<[^>]+>/g, "")
-        .replace(/&nbsp;/g, " ").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"');
-    }
-    function parseMeta(desc) {
-      const raw = stripHtml(desc).replace(/[ \t]+\n/g, "\n").trim();
-      const lines = raw.split(/\n/).map((s) => s.trim()).filter(Boolean);
-      const line = [...lines].reverse().find((l) => /\d+\s*min/i.test(l)) || "";
-      const runtime = +(line.match(/(\d+)\s*min/i) || [])[1] || 0;
-      const orig = (line.split(";")[0] || "").trim();
-      const year = +(line.match(/\b((?:19|20)\d{2})\b/) || [])[1] || 0;
-      const cut = raw.search(/\sRéžia|\sDirector:|\nOcenenia/);
-      const synopsis = (cut > 40 ? raw.slice(0, cut) : (lines[0] || "")).replace(/\s+/g, " ").trim();
-      const credits = cut > 0 ? raw.slice(cut).replace(/^\s*(Réžia|Director:)/, "$1").trim() : "";
-      return { runtime, orig, year, synopsis, credits };
-    }
-    function pack(items) {
-      const ends = [];
-      for (const it of items.sort((a, b) => a.start - b.start || a.end - b.end)) {
-        let lane = ends.findIndex((e) => e <= it.start);
-        if (lane < 0) { lane = ends.length; ends.push(it.end); }
-        else ends[lane] = it.end;
-        it.lane = lane;
-      }
-      return ends.length || 1;
-    }
-    function t(key) { return COPY[state.lang][key]; }
-    function wideUi() { return matchMedia("(min-width: 721px) and (min-height: 501px)").matches; }
     function filtCount() { return (state.query.trim() ? 1 : 0) + state.selSec.size + state.selVenue.size; }
     function syncFiltUi() {
       const n = filtCount();
@@ -468,34 +165,14 @@
       if (wide && $("filt-sheet").open) $("filt-sheet").close();
     }
     function pxMin() { return parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--px-min")) || 2.6; }
-    function clockLabel(date) {
-      const p = parts(date);
-      return String(p.hour).padStart(2, "0") + ":" + String(p.min).padStart(2, "0");
-    }
-    function esc(s) {
-      return String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-    }
 
     function resTickets() { return state.tickets.filter((tk) => tk.resOn !== false); }
     function resFavsVisible() { return !!(state.onlyFavs && state.favs.size && resTickets().length); }
     function syncResButtons() {
       if (state.onlyFavs) renderMain();
     }
-    const FIRED_KEY = "cinematik-notified";
     let remindTimers = [];
     function leadMs() { return state.notifyMins * 60 * 1000; }
-    function loadFired() {
-      try {
-        const o = JSON.parse(localStorage.getItem(FIRED_KEY) || "{}");
-        return o && typeof o === "object" && !Array.isArray(o) ? o : {};
-      } catch { return {}; }
-    }
-    function saveFired(o) {
-      const cut = Date.now() - 2 * 86400000;
-      const next = {};
-      for (const [k, v] of Object.entries(o)) if (Number(v) > cut) next[k] = v;
-      try { localStorage.setItem(FIRED_KEY, JSON.stringify(next)); } catch {}
-    }
     function remindTargets() {
       const now = Date.now();
       const map = new Map();
@@ -603,7 +280,6 @@
       note("");
       void scheduleReminders();
     }
-    function stripTag(s) { return String(s || "").replace(/\s*\[[^\]]*\]\s*/g, " ").replace(/\s+/g, " ").trim(); }
     function namesMatch(a, b) {
       a = fold(stripTag(a)).replace(/^the /, "");
       b = fold(stripTag(b)).replace(/^the /, "");
@@ -804,20 +480,6 @@
       if (!el) { if (text) toast(text); return; }
       el.hidden = !text;
       el.textContent = text || "";
-    }
-    let toastT = 0;
-    function hideToast() {
-      const box = $("toasts");
-      box.innerHTML = "";
-      if (box.hidePopover) { try { box.hidePopover(); } catch {} }
-    }
-    function toast(msg, act) {
-      const box = $("toasts");
-      box.innerHTML = `<div class="toast">${esc(msg)}${act ? `<button type="button" id="toast-act">${esc(act.label)}</button>` : ""}</div>`;
-      if (act) $("toast-act").onclick = () => { hideToast(); act.run(); };
-      if (box.showPopover) { try { if (!box.matches(":popover-open")) box.showPopover(); } catch {} }
-      clearTimeout(toastT);
-      toastT = setTimeout(hideToast, act ? 7000 : 3000);
     }
     function showResLog(rows) {
       $("res-card").innerHTML = resCardHtml(t("resLog"), `
@@ -1029,9 +691,6 @@
       syncFiltUi();
     }
 
-    function fold(s) {
-      return String(s || "").normalize("NFD").replace(/\p{M}/gu, "").toLowerCase();
-    }
     function matchesQuery(it) {
       const q = fold(state.query.trim());
       if (!q) return true;
@@ -1244,7 +903,6 @@
     const rateCache = new Map();
     let rateSeq = 0;
 
-    function stripPart(s) { return String(s || "").replace(/\s*\[\d+\s*\/\s*\d+\]\s*/g, " ").trim(); }
     async function getJson(url) {
       const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
       if (!res.ok) throw new Error(res.status);
@@ -1307,7 +965,6 @@
       }
       return {};
     }
-    const EXT = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg>`;
     /* With a value it reads as a rating; without one it is plainly a link to search the site. */
     function rateChip(label, href, val) {
       return `<a class="rate${val ? "" : " is-link"}" href="${esc(href)}" target="_blank" rel="noopener">${label}${val ? ` <b>${esc(val)}</b>` : EXT}</a>`;
