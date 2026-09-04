@@ -721,6 +721,7 @@
         settings: "Nastavenia",
         tickets: "Vstupenky", ticketsHint: "Zaškrtni vstupenky, ktorými chceš rezervovať. QR ostane v telefóne; pri rezervácii sa kód odošle do Invitonu.",
         resBtn: "Rezervovať", resDone: "Rezervované", resNeed: "Pridaj vstupenku",
+        resNoPass: "Rezervácie fungujú cez tvoju akreditáciu alebo vstupenku. Najprv naskenuj jej QR kód – ostane len v telefóne.",
         resFavs: "Rezervovať obľúbené", resMine: "Rezervácie", resMineEmpty: "Zatiaľ žiadna rezervácia.",
         resUse: "Rezervovať s touto vstupenkou",
         resBusy: "Rezervujem…", resOk: "Rezervované.", resUnresOk: "Rezervácia zrušená.",
@@ -777,6 +778,7 @@
         settings: "Settings",
         tickets: "Tickets", ticketsHint: "Tick the passes you want to reserve with. The QR stays on the phone; it is sent to Inviton only when you reserve.",
         resBtn: "Reserve", resDone: "Reserved", resNeed: "Add a pass",
+        resNoPass: "Reservations work through your pass or ticket. Scan its QR code first – it stays on this phone.",
         resFavs: "Reserve favourites", resMine: "Reservations", resMineEmpty: "No reservations yet.",
         resUse: "Use this pass for reservations",
         resBusy: "Reserving…", resOk: "Reserved.", resUnresOk: "Reservation cancelled.",
@@ -1202,8 +1204,17 @@
         </div>`;
     }
     async function openMine() {
-      if (!state.tickets.length) { void openSettings(); return; }
       const c = COPY[state.lang];
+      if (!state.tickets.length) {
+        $("res-card").innerHTML = resCardHtml(c.resMine, `
+          <p class="status">${c.resNoPass}</p>
+          <div class="detail-actions">
+            <button type="button" class="btn" data-res-need>${c.addTicket}</button>
+            <button type="button" class="btn secondary" data-close>${c.close}</button>
+          </div>`);
+        $("res-card").showModal();
+        return;
+      }
       $("res-card").innerHTML = resCardHtml(c.resMine, `<p class="status">${c.load}</p>`);
       $("res-card").showModal();
       $("res-title").focus();
@@ -2207,7 +2218,7 @@
       const unMine = e.target.closest("[data-unres-tk]");
       if (unMine) { void unresMine(unMine.dataset.unresTk, unMine.dataset.td); return; }
       const resNeed = e.target.closest("[data-res-need]");
-      if (resNeed) { void openSettings(); return; }
+      if (resNeed) { $("res-card").close(); void openSettings(); return; }
       const resBtn = e.target.closest("[data-res]");
       if (resBtn) {
         const it = state.items.find((x) => x.id === +resBtn.dataset.res);
