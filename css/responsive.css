@@ -1,0 +1,110 @@
+@layer components {
+  /* compact layout: narrow screens, and short ones (phone in landscape) */
+  @media (max-width: 720px), (max-height: 500px) {
+    :root { --venue-w: 5.75rem; --px-min: 2.4px; --lane-h: 64px; }
+    /* the venue gutter is replaced by a name printed in each lane (see renderBoard) */
+    .gutter { display: none; }
+    .board-split { grid-template-columns: minmax(0, 1fr); }
+    /* room under the tab bar for the iOS home indicator / Android gesture bar; never less than 8px */
+    :root { --tab-safe: max(env(safe-area-inset-bottom, 0px), var(--space-2)); }
+    .app { padding-block-end: calc(56px + var(--tab-safe)); }
+    /* backdrop-filter would make .top the containing block for the fixed tab bar */
+    .top {
+      gap: var(--space-2); padding: var(--space-2) var(--space-3); backdrop-filter: none;
+      padding-block-start: calc(var(--space-2) + env(safe-area-inset-top, 0px));
+    }
+    .eyebrow, .disclaimer, .foot { display: none; }
+    .brand { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: var(--space-2); }
+    .brand-copy { gap: 0; }
+    .brand h1 { font-size: 1.15rem; line-height: 1.15; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .brand-tools { gap: var(--space-1); flex-wrap: nowrap; }
+    .seg button, .days button, .chip, .ghost { padding: 4px 8px; font-size: var(--text-sm); }
+    .chip, .ghost { min-height: 44px; }
+    .days { padding: 2px; }
+    .days button { min-width: 0; flex: 1 1 0; gap: 0; padding: 6px 2px; justify-items: center; text-align: center; }
+    .now-btn { width: 44px; padding: 0; display: grid; }
+    .now-btn span { display: none; }
+    .status { min-height: 0; font-size: var(--text-xs); }
+    .filt-host { display: none; }
+    /* bottom tab bar */
+    .toolbar {
+      position: fixed; inset-inline: 0; inset-block-end: 0; z-index: 10;
+      display: flex; gap: 0; height: calc(56px + var(--tab-safe));
+      padding-block-end: var(--tab-safe);
+      padding-inline: env(safe-area-inset-left, 0px) env(safe-area-inset-right, 0px);
+      background: var(--surface); border-block-start: 1px solid var(--border);
+    }
+    .toolbar .tab {
+      flex: 1 1 0; min-width: 0; min-height: 56px; padding: 6px 4px;
+      display: grid; justify-items: center; align-content: center; gap: 2px;
+      border: 0; border-radius: 0; background: transparent; box-shadow: none;
+      font-size: var(--text-xs); font-weight: 500; color: var(--text-muted);
+    }
+    .toolbar .tab span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+    .toolbar .tab svg { width: 22px; height: 22px; }
+    .toolbar .tab[aria-pressed="true"] { color: var(--accent); background: transparent; box-shadow: none; }
+    .toolbar .tab:hover { background: var(--surface-2); }
+    /* filter sheet: options as full-width check rows */
+    .fs-body .grp { display: grid; gap: var(--space-1); }
+    .fs-body .grp-head { justify-content: space-between; min-height: 32px; }
+    .fs-body .opts { display: grid; gap: 0; overflow: visible; }
+    .fs-body #ven-filters .opts { grid-template-columns: 1fr 1fr; }
+    .fs-body .chip {
+      width: 100%; justify-content: flex-start; min-height: 44px; padding: var(--space-2);
+      border: 0; background: transparent; box-shadow: none; color: var(--text); text-align: start;
+    }
+    .fs-body .chip::before {
+      content: ""; flex: none; width: 1.25rem; height: 1.25rem; border-radius: 4px;
+      border: 1.5px solid var(--border-strong); background: var(--surface);
+    }
+    .fs-body .chip[aria-pressed="true"]::before {
+      background: var(--accent); border-color: var(--accent);
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23332a20' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m5 12 5 5 9-10'/%3E%3C/svg%3E");
+      background-size: 80%; background-position: center; background-repeat: no-repeat;
+    }
+    .fs-body .chip .chip-t { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
+    .fs-body .search { width: 100%; }
+    .venue, .corner { padding-inline: var(--space-2); }
+    .venue strong { font-size: var(--text-xs); text-wrap: balance; }
+    .block .inner { padding: 6px 2rem 6px var(--space-2); }
+    .block .n { font-size: 0.8125rem; }
+    .block .s { display: none; }
+    .fav { width: 44px; height: 44px; min-height: 44px; }
+    .search { width: 100%; }
+    .search input { width: 100%; }
+    .list-item { grid-template-columns: minmax(0, 1fr) auto; }
+    .list-hit { grid-template-columns: 3.75rem minmax(0, 1fr); }
+  }
+  /* phone in landscape: day strip shares a row with the gear, tab bar shrinks to one line */
+  @media (max-height: 500px) and (orientation: landscape) {
+    :root { --tab-safe: max(env(safe-area-inset-bottom, 0px), var(--space-1)); }
+    .top { grid-template-columns: minmax(0, 1fr) auto; gap: var(--space-1) var(--space-2); padding-block: var(--space-1); }
+    .brand-copy { display: none; }
+    .brand { grid-row: 1; grid-column: 2; }
+    .days { grid-row: 1; grid-column: 1; }
+    .controls { grid-row: 2; grid-column: 1 / -1; }
+    .app { padding-block-end: calc(44px + var(--tab-safe)); }
+    .toolbar { height: calc(44px + var(--tab-safe)); }
+    .toolbar .tab { min-height: 44px; grid-auto-flow: column; grid-auto-columns: max-content; justify-content: center; gap: var(--space-2); }
+    .toolbar .tab svg { width: 18px; height: 18px; }
+  }
+  @media (min-width: 721px) and (min-height: 501px) {
+    .filt-btn, #btn-program { display: none; }
+    /* toolbar and view controls share one row: brand / days / toolbar+controls / filters */
+    .top { grid-template-columns: minmax(0, 1fr) auto; }
+    .brand, .days, .filt-host { grid-column: 1 / -1; }
+    .toolbar { grid-row: 3; grid-column: 1; }
+    .controls { grid-row: 3; grid-column: 2; }
+    .filt-host { grid-row: 4; }
+    .controls .seg { margin-inline-start: auto; }
+    /* enough vertical room on desktop: wrap the chip rows instead of scrolling sideways */
+    .grp { align-items: flex-start; }
+    .grp-head { min-height: 32px; }
+    .opts { flex-wrap: wrap; overflow: visible; gap: var(--space-1) var(--space-2); }
+    .opts .chip { min-height: 32px; padding: 4px 10px; font-size: var(--text-sm); }
+    #toasts { inset-block-end: var(--space-4); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; transition: none !important; }
+  }
+}
