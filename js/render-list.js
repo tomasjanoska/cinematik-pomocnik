@@ -19,13 +19,14 @@ function renderList() {
     return;
   }
   const q = state.query.trim();
+  const showDays = state.onlyFavs || !!q;
   let lastDay = "";
   const html = items.map((it) => {
     const title = txt(it.raw.NameLocalized);
     const on = state.favs.has(it.id);
     const st = clockLabel(it.start), en = clockLabel(it.end);
     let head = "";
-    if (q && it.day !== lastDay) {
+    if (showDays && it.day !== lastDay) {
       lastDay = it.day;
       head = `<div class="list-day">${esc(dayHeading(it.day))}</div>`;
     }

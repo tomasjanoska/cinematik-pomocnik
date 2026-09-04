@@ -32,8 +32,6 @@ function applyParsedShare(parsed) {
   state.sharedFavs = ids;
   state.sharedName = parsed.who;
   state.onlyFavs = true;
-  const days = state.items.filter((it) => ids.has(it.id)).map((it) => it.day).sort();
-  if (!days.includes(state.day) && days[0]) state.day = days[0];
   const u = new URL(location.href);
   u.hash = "";
   u.searchParams.set("favs", [...ids].sort((a, b) => a - b).join(","));

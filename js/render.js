@@ -36,7 +36,7 @@ function actionBar() {
 }
 
 function renderMain() {
-  if (state.view === "list") renderList();
+  if (state.onlyFavs || state.view === "list") renderList();
   else renderBoard();
   const bar = actionBar();
   if (bar) $("main").insertAdjacentHTML("beforeend", bar);
