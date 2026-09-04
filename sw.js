@@ -1,8 +1,8 @@
-const CACHE = "cinematik-v-mobile-9";
+const CACHE = "cinematik-v-mobile-11";
 const PRECACHE = [
   "./index.html", "./films.json",
   "./css/base.css", "./css/header.css", "./css/board.css", "./css/list.css", "./css/dialogs.css", "./css/feedback.css", "./css/responsive.css",
-  "./js/booking.js", "./js/config.js", "./js/copy.js", "./js/data.js", "./js/detail.js", "./js/feedback.js", "./js/filters.js", "./js/main.js", "./js/ratings.js", "./js/reminders.js", "./js/render-board.js", "./js/render-chrome.js", "./js/render-list.js", "./js/render.js", "./js/reservations.js", "./js/state.js", "./js/storage.js", "./js/tickets.js", "./js/util.js",
+  "./js/booking.js", "./js/config.js", "./js/copy.js", "./js/data.js", "./js/detail.js", "./js/feedback.js", "./js/filters.js", "./js/main.js", "./js/ratings.js", "./js/reminders.js", "./js/render-board.js", "./js/render-chrome.js", "./js/render-list.js", "./js/render.js", "./js/reservations.js", "./js/share.js", "./js/state.js", "./js/storage.js", "./js/tickets.js", "./js/util.js",
   "./manifest.webmanifest", "./icon.svg", "./icon-192.png", "./icon-512.png", "./loading.mp3"];
 
 self.addEventListener("install", (e) => {

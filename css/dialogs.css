@@ -15,7 +15,7 @@
   .ticket-acts .danger { margin-inline-start: auto; }
   .ghost.danger { color: var(--now); }
 
-  .file-btn, #new-ticket-name, #notify-mins {
+  .file-btn, #new-ticket-name, #notify-mins, #share-name, #share-url {
     min-height: 44px; width: 100%; font: inherit; color: var(--text);
     border: 1px solid var(--border); background: var(--surface);
     border-radius: var(--radius-sm); padding: var(--space-2) var(--space-3);
@@ -24,14 +24,15 @@
   #qr-box video { width: 100% !important; }
   .qr-show { display: grid; justify-items: center; gap: var(--space-3); padding: var(--space-4); background: #fff; border-radius: var(--radius-sm); }
   .qr-show canvas, .qr-show img { width: min(16rem, 100%); height: auto; }
+  #share-qr-box { min-height: min(16rem, 70vw); }
   .qr-payload { font-size: var(--text-xs); color: #333; word-break: break-all; text-align: center; max-width: 20rem; }
 
-  #detail, #settings, #ticket-card, #res-card {
+  #detail, #settings, #ticket-card, #res-card, #share {
     width: min(40rem, calc(100vw - 1.5rem)); max-height: min(90dvh, 52rem);
     background: var(--surface); color: var(--text); border-radius: var(--radius-md);
     box-shadow: var(--shadow-dialog); overflow: auto;
   }
-  #detail::backdrop, #settings::backdrop, #ticket-card::backdrop, #res-card::backdrop, #busy::backdrop { background: var(--overlay); }
+  #detail::backdrop, #settings::backdrop, #ticket-card::backdrop, #res-card::backdrop, #share::backdrop, #busy::backdrop { background: var(--overlay); }
 
   .res-log { display: grid; gap: var(--space-2); margin: 0; padding-inline-start: 1.2rem; font-size: var(--text-sm); color: var(--text-muted); }
   .poster { aspect-ratio: 16 / 10; background: var(--bg); overflow: hidden; }

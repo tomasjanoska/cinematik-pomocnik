@@ -8,7 +8,7 @@ import { scheduleReminders } from "./reminders.js";
 
 function resTickets() { return state.tickets.filter((tk) => tk.resOn !== false); }
 
-function resFavsVisible() { return !!(state.onlyFavs && state.favs.size && resTickets().length); }
+function resFavsVisible() { return !!(state.onlyFavs && !state.sharedFavs && state.favs.size && resTickets().length); }
 
 function namesMatch(a, b) {
   a = fold(stripTag(a)).replace(/^the /, "");

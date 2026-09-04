@@ -32,7 +32,7 @@ function renderChrome() {
   $("btn-now").hidden = !days.includes(festDay(new Date()));
   $("program-label").textContent = c.program;
   $("btn-program").setAttribute("aria-pressed", !state.onlyFavs);
-  $("fav-label").textContent = c.favs;
+  $("fav-label").textContent = state.sharedFavs && state.onlyFavs ? c.sharedBanner(state.sharedName) : c.favs;
   $("btn-favs").setAttribute("aria-pressed", state.onlyFavs);
   $("res-mine-label").textContent = c.resMine;
   $("view-grid").textContent = c.grid;
