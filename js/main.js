@@ -9,8 +9,9 @@ import { openMine, unresMine, refreshResChip } from "./reservations.js";
 import { bookItem, bookFavs } from "./booking.js";
 import { scheduleReminders, goFilm, setNotify } from "./reminders.js";
 import { openDetail, toggleFav } from "./detail.js";
-import { stopScan, openSettings, startCam, scanFile, savePendingTicket, deleteTicket, showTicket } from "./tickets.js";
+import { openSettings, openScan, scanFile, savePendingTicket, deleteTicket, showTicket } from "./tickets.js";
 import { load } from "./data.js";
+import { openShare, closeShare, sendShare, syncShareUrl } from "./share.js";
 
 document.addEventListener("click", (e) => {
   const tab = e.target.closest("[data-day]");
@@ -22,6 +23,8 @@ document.addEventListener("click", (e) => {
     saveSettings();
     paint();
     if ($("settings").open) void openSettings();
+    if ($("share").open) openShare();
+    if ($("scan").open) void openScan();
     return;
   }
   const clear = e.target.closest("[data-clear]");
@@ -61,6 +64,8 @@ document.addEventListener("click", (e) => {
   if (e.target.closest("#view-list")) { state.view = "list"; paint(); return; }
   if (e.target.closest("#btn-settings")) { void openSettings(); return; }
   if (e.target.closest("#btn-res-favs")) { void bookFavs(); return; }
+  if (e.target.closest("#btn-share")) { openShare(); return; }
+  if (e.target.closest("#btn-share-close")) { closeShare(); return; }
   if (e.target.closest("#btn-res-mine")) { void openMine(); return; }
   const unMine = e.target.closest("[data-unres-tk]");
   if (unMine) { void unresMine(unMine.dataset.unresTk, unMine.dataset.td); return; }
@@ -78,8 +83,8 @@ document.addEventListener("click", (e) => {
     if (it) void bookItem(it, true);
     return;
   }
-  if (e.target.closest("#btn-scan-cam")) { void startCam(); return; }
-  if (e.target.closest("#btn-stop-scan")) { void stopScan(); return; }
+  if (e.target.closest("#btn-scan-cam")) { void openScan(); return; }
+  if (e.target.closest("#btn-stop-scan")) { $("scan")?.close(); return; }
   if (e.target.closest("#btn-save-ticket")) { savePendingTicket(); return; }
   const showTk = e.target.closest("[data-show-ticket]");
   if (showTk) { void showTicket(showTk.dataset.showTicket); return; }
@@ -118,6 +123,15 @@ $("q").addEventListener("input", () => {
   state.query = $("q").value;
   renderMain();
   syncFiltUi();
+});
+document.addEventListener("submit", (e) => {
+  if (e.target.id !== "share-form") return;
+  e.preventDefault();
+  const via = e.submitter && e.submitter.value === "share" ? "share" : "copy";
+  void sendShare(via);
+});
+document.addEventListener("input", (e) => {
+  if (e.target.id === "share-name") syncShareUrl();
 });
 document.addEventListener("change", (e) => {
   const ntfMins = e.target.closest("[data-notify-mins]");

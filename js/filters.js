@@ -18,7 +18,7 @@ function visibleItems() {
     (allDays || it.day === state.day) &&
     (state.selSec.size === 0 || state.selSec.has(it.section)) &&
     (state.selVenue.size === 0 || state.selVenue.has(String(it.locationId))) &&
-    (!state.onlyFavs || state.favs.has(it.id)) &&
+    (!state.onlyFavs || (state.sharedFavs || state.favs).has(it.id)) &&
     matchesQuery(it)
   );
 }

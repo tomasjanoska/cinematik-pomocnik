@@ -1,13 +1,16 @@
 import { withBusy, toast } from "./feedback.js";
-import { $, esc } from "./util.js";
+import { $, esc, qrDataUrl, disclaimerHtml } from "./util.js";
 import { COPY } from "./copy.js";
-import { QR_SCAN_SRC, QR_DRAW_SRC } from "./config.js";
+import { QR_SCAN_SRC } from "./config.js";
 import { state, t, saveSettings } from "./state.js";
 import { syncResButtons } from "./render.js";
+import { openSharedList } from "./share.js";
 
 let scanner = null;
 
 let pendingQr = null;
+
+let scanLock = false;
 
 function loadScript(src, ready) {
   return new Promise((resolve, reject) => {
@@ -29,8 +32,10 @@ async function stopScan() {
 }
 
 async function openSettings() {
-  await stopScan();
-  pendingQr = null;
+  if (!$("scan")?.open) {
+    await stopScan();
+    pendingQr = null;
+  }
   const c = COPY[state.lang];
   const ntfMsg = typeof Notification === "undefined" ? c.notifyNo : Notification.permission === "denied" ? c.notifyDenied : "";
   const list = state.tickets.length
@@ -60,20 +65,6 @@ async function openSettings() {
         <div id="ticket-list">${list}</div>
         <div class="detail-actions">
           <button type="button" class="btn" id="btn-scan-cam">${c.scanQr}</button>
-          <label class="btn secondary" for="scan-file">${c.scanFile}</label>
-        </div>
-        <input id="scan-file" class="sr-file" type="file" accept="image/*">
-        <div id="scan-panel" hidden>
-          <p id="scan-status" class="status" role="status"></p>
-          <div id="qr-box"></div>
-          <div class="detail-actions">
-            <button type="button" class="btn secondary" id="btn-stop-scan">${c.stopScan}</button>
-          </div>
-          <div id="scan-save" hidden>
-            <label class="lbl" for="new-ticket-name">${c.ticketName}</label>
-            <input id="new-ticket-name" type="text" autocomplete="off">
-            <button type="button" class="btn" id="btn-save-ticket">${c.saveTicket}</button>
-          </div>
         </div>
       </section>
       <section class="panel-sec">
@@ -92,7 +83,7 @@ async function openSettings() {
       </section>
       <section class="panel-sec">
         <h3>${c.about}</h3>
-        <p class="status">${esc(c.disclaimer)}</p>
+        <p class="status">${disclaimerHtml(state.lang)}</p>
         <p class="status">${c.foot}<a href="https://cinematik.sk/program?st=1">cinematik.sk/program</a> · ${c.ideas}: <a href="mailto:cmnapady@pocuj.com">cmnapady@pocuj.com</a></p>
       </section>
       <button type="button" class="btn secondary" data-close>${c.close}</button>
@@ -100,16 +91,37 @@ async function openSettings() {
   $("settings").showModal();
 }
 
-function revealScan() {
-  const panel = $("scan-panel");
-  if (!panel) return;
-  panel.hidden = false;
-  $("scan-save").hidden = true;
+function fillScanModal() {
+  $("scan").innerHTML = `
+    <form method="dialog"><button class="x" value="close" aria-label="${t("close")}">×</button></form>
+    <div class="panel-body">
+      <h2 id="scan-title">${t("scanTitle")}</h2>
+      <p class="status">${t("scanHint")}</p>
+      <p id="scan-status" class="status" role="status"></p>
+      <div id="qr-box"></div>
+      <div class="detail-actions">
+        <label class="btn secondary" for="scan-file">${t("scanFile")}</label>
+        <button type="button" class="btn secondary" id="btn-stop-scan">${t("stopScan")}</button>
+      </div>
+      <input id="scan-file" class="sr-file" type="file" accept="image/*">
+      <div id="scan-save" hidden>
+        <label class="lbl" for="new-ticket-name">${t("ticketName")}</label>
+        <input id="new-ticket-name" type="text" autocomplete="off">
+        <button type="button" class="btn" id="btn-save-ticket">${t("saveTicket")}</button>
+      </div>
+    </div>`;
+}
+
+async function openScan() {
+  scanLock = false;
   pendingQr = null;
+  await stopScan();
+  fillScanModal();
+  $("scan").showModal();
+  void startCam();
 }
 
 async function startCam() {
-  revealScan();
   const status = $("scan-status");
   if (!status || !$("qr-box")) return;
   status.textContent = t("scanLib");
@@ -160,7 +172,7 @@ async function decodeQrFile(file) {
 }
 
 async function scanFile(file) {
-  revealScan();
+  if (!$("scan")?.open) await openScan();
   const status = $("scan-status");
   if (!status) return;
   status.textContent = t("scanLib");
@@ -176,8 +188,27 @@ async function scanFile(file) {
 }
 
 function onScanned(text) {
+  if (scanLock) return;
   const payload = String(text || "").trim();
   if (!payload) return;
+  const share = openSharedList(payload);
+  if (share === true) {
+    scanLock = true;
+    void stopScan();
+    $("scan")?.close();
+    $("settings")?.close();
+    $("share")?.close();
+    return;
+  }
+  if (share === "empty") {
+    void stopScan();
+    toast(t("shareScanFail"));
+    const status = $("scan-status");
+    if (status) status.textContent = t("shareScanFail");
+    return;
+  }
+  if (/^https?:\/\//i.test(payload)) return;
+  scanLock = true;
   pendingQr = payload;
   void stopScan();
   const save = $("scan-save");
@@ -201,6 +232,7 @@ function savePendingTicket() {
   pendingQr = null;
   saveSettings();
   syncResButtons();
+  $("scan")?.close();
   void openSettings();
   toast(t("ticketSaved"));
 }
@@ -245,17 +277,13 @@ async function showTicket(id) {
     <form method="dialog"><button class="x" value="close" aria-label="${t("close")}">×</button></form>
     <div class="panel-body">
       <h2 id="tc-title" tabindex="-1">${esc(tk.name)}</h2>
-      <div class="qr-show"><canvas id="qr-canvas" width="280" height="280"></canvas></div>
+      <div class="qr-show" id="qr-show"></div>
       <button type="button" class="btn secondary" data-close>${t("close")}</button>
     </div>`;
   card.showModal();
   $("tc-title").focus();
-  const canvas = $("qr-canvas");
   try {
-    await withBusy(t("load"), async () => {
-      await loadScript(QR_DRAW_SRC, () => typeof QRCode !== "undefined" && typeof QRCode.toCanvas === "function");
-      await QRCode.toCanvas(canvas, String(tk.payload), { width: 280, margin: 2, errorCorrectionLevel: "M", color: { dark: "#000000", light: "#ffffff" } });
-    });
+    $("qr-show").innerHTML = `<img alt="" width="280" height="280" src="${qrDataUrl(String(tk.payload))}">`;
   } catch {
     /* No remote fallback: the pass must never leave the phone except to Inviton. */
     const box = card.querySelector(".qr-show");
@@ -264,6 +292,11 @@ async function showTicket(id) {
   if (reopen) card.addEventListener("close", () => { void openSettings(); }, { once: true });
 }
 
-$("settings").addEventListener("close", () => { void stopScan(); pendingQr = null; });
+$("settings").addEventListener("close", () => {
+  if ($("scan")?.open) return;
+  void stopScan();
+  pendingQr = null;
+});
+$("scan").addEventListener("close", () => { void stopScan(); pendingQr = null; scanLock = false; });
 
-export { loadScript, stopScan, openSettings, revealScan, startCam, decodeQrFile, scanFile, onScanned, savePendingTicket, deleteTicket, setActiveTicket, showTicket };
+export { loadScript, stopScan, openSettings, openScan, startCam, decodeQrFile, scanFile, onScanned, savePendingTicket, deleteTicket, setActiveTicket, showTicket };

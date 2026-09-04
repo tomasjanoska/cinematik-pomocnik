@@ -1,5 +1,5 @@
-import { TZ, NIGHT_END } from "./config.js";
-import { SEC_HUE } from "./copy.js";
+import { TZ, NIGHT_END, INVITON_SITE, CINEMATIK_SITE, APP_IOS, APP_ANDROID } from "./config.js";
+import { COPY, SEC_HUE } from "./copy.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -96,4 +96,30 @@ function stripPart(s) { return String(s || "").replace(/\s*\[\d+\s*\/\s*\d+\]\s*
 
 function secColor(name) { return `oklch(0.72 0.12 ${SEC_HUE[name] ?? 55})`; }
 
-export { $, esc, wideUi, parts, parseIdt, addDays, ymd, festDay, minsOnDay, clockLabel, locName, personName, stripHtml, parseMeta, pack, fold, stripTag, stripPart, secColor };
+function qrDataUrl(text) {
+  if (typeof qrcode !== "function") throw new Error("qr");
+  if (qrcode.stringToBytesFuncs && qrcode.stringToBytesFuncs["UTF-8"]) qrcode.stringToBytes = qrcode.stringToBytesFuncs["UTF-8"];
+  const make = (level) => {
+    const qr = qrcode(0, level);
+    qr.addData(String(text), "Byte");
+    qr.make();
+    return qr.createDataURL(4, 4);
+  };
+  try { return make("M"); } catch { return make("L"); }
+}
+
+function officialAppHref() {
+  const ua = navigator.userAgent || "";
+  if (/Android/i.test(ua)) return APP_ANDROID;
+  if (/iPhone|iPad|iPod/i.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1)) return APP_IOS;
+  return CINEMATIK_SITE;
+}
+
+function disclaimerHtml(lang) {
+  const c = COPY[lang] || COPY.sk;
+  const inviton = `<a href="${INVITON_SITE}" target="_blank" rel="noopener">Inviton</a>`;
+  const app = `<a href="${esc(officialAppHref())}" target="_blank" rel="noopener">${c.officialApp}</a>`;
+  return c.disclaimer(inviton, app);
+}
+
+export { $, esc, wideUi, parts, parseIdt, addDays, ymd, festDay, minsOnDay, clockLabel, locName, personName, stripHtml, parseMeta, pack, fold, stripTag, stripPart, secColor, qrDataUrl, officialAppHref, disclaimerHtml };

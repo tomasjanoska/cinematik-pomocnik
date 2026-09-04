@@ -18,8 +18,9 @@ function loadSettings() {
     const tickets = Array.isArray(raw.tickets) ? raw.tickets.filter((x) => x && x.id && x.payload).map((x) => ({ ...x, resOn: x.resOn !== false })) : [];
     const activeTicketId = tickets.some((x) => x.id === raw.activeTicketId) ? raw.activeTicketId : tickets[0]?.id || null;
     const lang = raw.lang === "en" ? "en" : "sk";
-    return { lang, tickets, activeTicketId, notifyOn: !!raw.notifyOn, notifyMins: clampMins(raw.notifyMins), notifyFav: raw.notifyFav !== false, notifyRes: raw.notifyRes !== false, soundOn: raw.soundOn === true };
-  } catch { return { lang: "sk", tickets: [], activeTicketId: null, notifyOn: false, notifyMins: 15, notifyFav: true, notifyRes: true, soundOn: false }; }
+    const shareName = typeof raw.shareName === "string" ? raw.shareName.replace(/[\u0000-\u001f\u007f]/g, "").trim().slice(0, 40) : "";
+    return { lang, tickets, activeTicketId, notifyOn: !!raw.notifyOn, notifyMins: clampMins(raw.notifyMins), notifyFav: raw.notifyFav !== false, notifyRes: raw.notifyRes !== false, soundOn: raw.soundOn === true, shareName };
+  } catch { return { lang: "sk", tickets: [], activeTicketId: null, notifyOn: false, notifyMins: 15, notifyFav: true, notifyRes: true, soundOn: false, shareName: "" }; }
 }
 
 function loadFired() {

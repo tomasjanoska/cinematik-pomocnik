@@ -6,6 +6,7 @@ import { paint } from "./render.js";
 import { loadResPub } from "./reservations.js";
 import { scheduleReminders, goFilm } from "./reminders.js";
 import { openSettings } from "./tickets.js";
+import { applyShare } from "./share.js";
 
 async function load() {
   $("status").textContent = t("load");
@@ -22,6 +23,7 @@ async function load() {
         state.filmLinks = links.films || [];
       }
       hydrate(data);
+      applyShare();
       paint();
     });
     void loadResPub().catch(() => {});
