@@ -5,7 +5,7 @@ import { wideUi } from "./util.js";
 
 const boot = loadSettings();
 
-const state = { lang: boot.lang, day: null, items: [], venues: [], sections: [], selSec: new Set(), selVenue: new Set(), favs: loadFavs(), onlyFavs: false, view: wideUi() ? "grid" : "list", query: "", axisStart: 0, tickets: boot.tickets, activeTicketId: boot.activeTicketId, notifyOn: boot.notifyOn, notifyMins: boot.notifyMins, notifyFav: boot.notifyFav, notifyRes: boot.notifyRes, soundOn: boot.soundOn, filmLinks: [], resPub: null, resPass: new Map() };
+const state = { lang: boot.lang, day: null, items: [], venues: [], sections: [], selSec: new Set(), selVenue: new Set(), favs: loadFavs(), onlyFavs: false, view: wideUi() ? "grid" : "list", query: "", axisStart: 0, tickets: boot.tickets, activeTicketId: boot.activeTicketId, notifyOn: boot.notifyOn, notifyMins: boot.notifyMins, notifyFav: boot.notifyFav, notifyRes: boot.notifyRes, soundOn: boot.soundOn, filmLinks: [], resPub: null, resPass: new Map(), detailId: null, pendingFilm: null };
 
 document.documentElement.lang = state.lang;
 
