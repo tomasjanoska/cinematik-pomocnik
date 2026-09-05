@@ -11,16 +11,38 @@ function wideUi() { return matchMedia("(min-width: 721px) and (min-height: 501px
 
 const locFmt = new Intl.DateTimeFormat("en-GB", {
   timeZone: TZ, year: "numeric", month: "2-digit", day: "2-digit",
-  hour: "2-digit", minute: "2-digit", hourCycle: "h23",
+  hour: "2-digit", minute: "2-digit", second: "2-digit", hourCycle: "h23",
 });
 
-function parts(date) {
+function fmtParts(date) {
   const o = {};
   for (const p of locFmt.formatToParts(date)) if (p.type !== "literal") o[p.type] = p.value;
+  return o;
+}
+
+function parts(date) {
+  const o = fmtParts(date);
   return { y: +o.year, m: +o.month, d: +o.day, hour: +o.hour, min: +o.minute, date: new Date(Date.UTC(o.year, o.month - 1, o.day)) };
 }
 
-function parseIdt(s) { return new Date(Number(String(s).replace("$idt/", ""))); }
+// Offset of TZ at `instant`, in ms: (TZ wall clock read as UTC) - instant.
+function tzOffsetMs(instant) {
+  const o = fmtParts(instant);
+  const wall = Date.UTC(+o.year, +o.month - 1, +o.day, +o.hour, +o.minute, +o.second);
+  return wall - Math.floor(instant.getTime() / 1000) * 1000;
+}
+
+// Inviton's "$idt/<ms>" holds the TZ wall-clock time encoded as if it were UTC,
+// not a real instant. Convert it to the real instant so that comparisons against
+// Date.now() (reminders, "now" marker) and TZ-aware formatting are both correct.
+function parseIdt(s) {
+  const raw = String(s ?? "").replace("$idt/", "").trim();
+  const wall = Number(raw);
+  if (!raw || !Number.isFinite(wall)) return new Date(NaN);
+  let t = wall - tzOffsetMs(new Date(wall));
+  t = wall - tzOffsetMs(new Date(t)); // second pass settles instants near a DST switch
+  return new Date(t);
+}
 
 function addDays(date, n) { const x = new Date(date); x.setUTCDate(x.getUTCDate() + n); return x; }
 
